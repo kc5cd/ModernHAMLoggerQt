@@ -52,8 +52,12 @@ void OperationListModel::append(Operation *operation)
     m_operations.append(operation);
     endInsertRows();
 
-    const int row = m_operations.size() - 1;
-    connect(operation, &Operation::qsoCountChanged, this, [this, row]() {
+    // Capture the operation, not its row: removeAt() can shift a later
+    // operation's row out from under a captured index.
+    connect(operation, &Operation::qsoCountChanged, this, [this, operation]() {
+        const int row = m_operations.indexOf(operation);
+        if (row < 0)
+            return;
         const QModelIndex idx = index(row, 0);
         emit dataChanged(idx, idx, {QsoCountRole});
     });
@@ -72,4 +76,15 @@ void OperationListModel::clear()
     qDeleteAll(m_operations);
     m_operations.clear();
     endResetModel();
+}
+
+void OperationListModel::removeAt(int row)
+{
+    if (row < 0 || row >= m_operations.size())
+        return;
+
+    beginRemoveRows(QModelIndex(), row, row);
+    Operation *operation = m_operations.takeAt(row);
+    endRemoveRows();
+    delete operation;
 }
