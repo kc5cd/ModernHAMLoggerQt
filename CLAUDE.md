@@ -34,6 +34,19 @@ git log --show-signature -1
 If signing fails (missing key, misconfigured `gpg.format`/`user.signingkey`),
 stop and fix the signing configuration rather than committing unsigned.
 
+## Git workflow
+
+This is a **public** repository for a solo project.
+
+- Never include a Claude session link (`https://claude.ai/code/session_...`)
+  or any other internal/session-identifying URL in a commit message. A
+  `Co-Authored-By:` trailer is fine; a session link is not.
+- Commit locally as normal, but do **not** `git push` unless the user
+  explicitly asks for it in that conversation turn. The user works locally
+  and pushes in large batches themselves — pushing on their behalf without
+  being asked (even "helpfully," even from a background/worktree session)
+  is not wanted.
+
 ## Build
 
 Requires Qt 6.10+ (Quick, Network components) and CMake 3.16+.
