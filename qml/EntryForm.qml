@@ -71,8 +71,13 @@ Rectangle {
             Layout.fillWidth: true
         }
 
+        // FontMetrics.font defaults to the application default font, not
+        // root's actual inherited font -- bind explicitly or width
+        // calculations below silently undershoot real glyph widths.
         FontMetrics {
             id: fieldMetrics
+            font.family: root.font.family
+            font.pixelSize: root.font.pixelSize
         }
 
         RowLayout {
@@ -85,6 +90,13 @@ Rectangle {
                 id: callsignField
                 Layout.preferredWidth: fieldMetrics.averageCharacterWidth * 12 + 16
                 maximumLength: 12
+                onTextChanged: {
+                    if (text !== text.toUpperCase()) {
+                        const pos = cursorPosition
+                        text = text.toUpperCase()
+                        cursorPosition = pos
+                    }
+                }
                 onEditingFinished: if (text.trim().length > 0) CallsignLookup.lookup(text.trim())
                 Keys.onReturnPressed: root.logContact()
             }
@@ -148,7 +160,10 @@ Rectangle {
             Label { text: qsTr("Grid"); color: Theme.textOnWindow }
             TextField {
                 id: gridField
-                Layout.preferredWidth: fieldMetrics.averageCharacterWidth * 8 + 16
+                // averageCharacterWidth undersizes all-caps content like grid
+                // squares ("XOXOXO") -- measure the actual widest glyph
+                // repeated to the field's max length instead.
+                Layout.preferredWidth: fieldMetrics.advanceWidth("M".repeat(maximumLength)) + 16
                 maximumLength: 8
             }
 

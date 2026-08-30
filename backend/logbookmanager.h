@@ -31,6 +31,7 @@ public:
 
     Q_INVOKABLE void addOperation(const QString &name, const QString &potaRef, const QString &sotaRef);
     Q_INVOKABLE void selectOperation(int index);
+    Q_INVOKABLE void deleteOperation(int index);
     Q_INVOKABLE void logQso(const QVariantMap &fields);
     Q_INVOKABLE void deleteQso(int opIndex, int row);
     // Deletes any number of rows in one persisted operation and returns how
