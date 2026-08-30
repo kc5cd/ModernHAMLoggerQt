@@ -148,7 +148,10 @@ Rectangle {
             Label { text: qsTr("Grid"); color: Theme.textOnWindow }
             TextField {
                 id: gridField
-                Layout.preferredWidth: fieldMetrics.averageCharacterWidth * 8 + 16
+                // averageCharacterWidth undersizes all-caps content like grid
+                // squares ("XOXOXO") -- measure the actual widest glyph
+                // repeated to the field's max length instead.
+                Layout.preferredWidth: fieldMetrics.horizontalAdvance("M".repeat(maximumLength)) + 16
                 maximumLength: 8
             }
 
