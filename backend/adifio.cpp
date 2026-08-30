@@ -203,7 +203,7 @@ QVector<Qso> AdifIo::parseFile(const QString &path)
     result.reserve(records.size());
     for (const QMap<QString, QString> &fields : records) {
         Qso qso;
-        qso.callsign = fields.value("CALL");
+        qso.callsign = fields.value("CALL").toUpper();
         qso.dateTimeUtc = parseAdifDateTime(fields.value("QSO_DATE"), fields.value("TIME_ON"));
         qso.band = fields.value("BAND");
         qso.mode = fields.value("MODE");

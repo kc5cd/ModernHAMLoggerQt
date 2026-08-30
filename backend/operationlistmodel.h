@@ -34,6 +34,9 @@ public:
 
     const QVector<Operation *> &operations() const { return m_operations; }
     void clear();
+    // Not Q_INVOKABLE -- go through LogbookManager::deleteOperation() so the
+    // removal gets persisted and current-selection is kept valid.
+    void removeAt(int row);
 
 private:
     QVector<Operation *> m_operations;
