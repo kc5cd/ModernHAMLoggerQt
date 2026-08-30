@@ -71,8 +71,13 @@ Rectangle {
             Layout.fillWidth: true
         }
 
+        // FontMetrics.font defaults to the application default font, not
+        // root's actual inherited font -- bind explicitly or width
+        // calculations below silently undershoot real glyph widths.
         FontMetrics {
             id: fieldMetrics
+            font.family: root.font.family
+            font.pixelSize: root.font.pixelSize
         }
 
         RowLayout {
@@ -158,7 +163,7 @@ Rectangle {
                 // averageCharacterWidth undersizes all-caps content like grid
                 // squares ("XOXOXO") -- measure the actual widest glyph
                 // repeated to the field's max length instead.
-                Layout.preferredWidth: fieldMetrics.horizontalAdvance("M".repeat(maximumLength)) + 16
+                Layout.preferredWidth: fieldMetrics.advanceWidth("M".repeat(maximumLength)) + 16
                 maximumLength: 8
             }
 
