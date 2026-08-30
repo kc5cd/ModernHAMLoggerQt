@@ -12,14 +12,63 @@ Rectangle {
 
     readonly property var currentLog: LogbookManager.currentOperation ? LogbookManager.currentOperation.log : null
 
-    // Indexed by QsoLogModel::Column, TimeColumn..CountryColumn. NotesColumn
-    // (the last column) is not listed here -- it stretches to fill whatever
-    // width is left over, see tableView.columnWidthProvider below.
-    readonly property var fixedColumnWidths: [140, 100, 70, 75, 95, 60, 60, 150, 80, 130]
+    // Indexed by QsoLogModel::Column, TimeColumn..CountryColumn -- must match
+    // QsoLogModel::headerData() in backend/qsologmodel.cpp. NotesColumn (the
+    // last column) is not listed here -- it stretches to fill whatever width
+    // is left over, see tableView.columnWidthProvider below.
+    readonly property var columnHeaders: [
+        qsTr("Time (UTC)"), qsTr("Call"), qsTr("Band"), qsTr("Mode"),
+        qsTr("Freq (kHz)"), qsTr("RST S"), qsTr("RST R"), qsTr("Name"),
+        qsTr("Grid"), qsTr("Country")
+    ]
+    readonly property int cellPadding: 14 // 4px left/right cell margins plus slack for font-metric rounding
+
+    // FontMetrics.font defaults to the *application* default font, not the
+    // actual inherited font the delegates below render with -- FontMetrics
+    // isn't an Item, so it never sees ambient font inheritance. Bind
+    // explicitly to root.font (which does inherit correctly) or measurement
+    // silently undershoots real glyph widths.
+    FontMetrics {
+        id: headerMetrics
+        font.family: root.font.family
+        font.pixelSize: root.font.pixelSize
+        font.bold: true
+    }
+    FontMetrics {
+        id: cellMetrics
+        font.family: root.font.family
+        font.pixelSize: root.font.pixelSize
+    }
+
+    // Widest header or cell content per column, recomputed by
+    // computeColumnWidths() below whenever the underlying data changes --
+    // replaces the old hand-tuned pixel constants.
+    property var contentColumnWidths: columnHeaders.map(h => headerMetrics.advanceWidth(h) + cellPadding)
     readonly property int notesMinWidth: 240
-    readonly property int fixedTotal: fixedColumnWidths.reduce((a, b) => a + b, 0)
+    readonly property int fixedTotal: contentColumnWidths.reduce((a, b) => a + b, 0)
 
     readonly property int gutterWidth: 56
+
+    function computeColumnWidths() {
+        const log = root.currentLog
+        // Operation.qsoCount (== QsoLogModel::rowCount()) rather than
+        // tableView.rows: the latter isn't populated yet the first time this
+        // runs (right after Component.onCompleted), which would otherwise
+        // drop any data already loaded at startup from width measurement.
+        const operation = LogbookManager.currentOperation
+        const rows = operation ? operation.qsoCount : 0
+        root.contentColumnWidths = root.columnHeaders.map((header, column) => {
+            let w = headerMetrics.advanceWidth(header)
+            if (log) {
+                for (let row = 0; row < rows; ++row)
+                    w = Math.max(w, cellMetrics.advanceWidth(log.cellText(row, column)))
+            }
+            return Math.ceil(w) + root.cellPadding
+        })
+        tableView.forceLayout()
+    }
+
+    Component.onCompleted: Qt.callLater(computeColumnWidths)
 
     // Row indices checked via the gutter checkboxes. A plain array, not a JS
     // Set: reassigning it is what re-evaluates delegate bindings, while
@@ -30,15 +79,22 @@ Rectangle {
     // Backs the shared Notes tooltip below; set by the cell delegate's hover handler.
     property string hoveredNote: ""
 
-    onCurrentLogChanged: checkedRows = []
+    onCurrentLogChanged: {
+        checkedRows = []
+        Qt.callLater(computeColumnWidths)
+    }
 
     Connections {
         target: root.currentLog
         ignoreUnknownSignals: true
-        function onRowsRemoved() { root.checkedRows = [] }
-        function onModelReset() { root.checkedRows = [] }
-        // rowsInserted intentionally unhandled: addQso only ever appends, so
-        // existing checked indices stay valid when a new contact is logged.
+        function onRowsRemoved() { root.checkedRows = []; Qt.callLater(root.computeColumnWidths) }
+        function onModelReset() { root.checkedRows = []; Qt.callLater(root.computeColumnWidths) }
+        // rowsInserted only recomputes column widths, not checkedRows:
+        // addQso always appends, so existing checked indices stay valid when
+        // a new contact is logged, but the new row's content can still be
+        // wider than any existing cell.
+        function onRowsInserted() { Qt.callLater(root.computeColumnWidths) }
+        function onDataChanged() { Qt.callLater(root.computeColumnWidths) }
     }
 
     function isChecked(row) {
@@ -246,7 +302,7 @@ Rectangle {
                     // the available horizontal space.
                     columnWidthProvider: function (column) {
                         if (column !== QsoLogModel.NotesColumn)
-                            return root.fixedColumnWidths[column]
+                            return root.contentColumnWidths[column]
                         const gaps = tableView.columnSpacing * (tableView.columns - 1)
                         return Math.max(root.notesMinWidth,
                                         Math.floor(tableView.width - root.fixedTotal - gaps))
