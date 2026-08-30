@@ -88,3 +88,4 @@ CMakeLists.txt.user*
 .claude/worktrees/
 .claude/plans/
 .claude/state/
+/TODO.md
