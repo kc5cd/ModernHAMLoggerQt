@@ -49,19 +49,51 @@ This is a **public** repository for a solo project.
 
 ## Build
 
-Requires Qt 6.10+ (Quick, Network components) and CMake 3.16+.
+Requires Qt 6.10+ (Quick, Network, Test, QuickTest components) and CMake 3.22+.
 
 ```
 cmake -S . -B build -DCMAKE_PREFIX_PATH=<path-to-Qt-6.10-kit>
 cmake --build build
 ```
 
-There is no test suite, lint config, or CMake presets in this repo — don't
-assume `ctest` or a formatter target exists.
+There is no lint config or CMake presets in this repo — don't assume a
+formatter target exists.
 
 An `importedcontent/` subdirectory is picked up automatically by the root
 `CMakeLists.txt` if it contains its own `CMakeLists.txt` — this is a drop point
 for design assets exported from Figma-to-Qt tooling, not hand-written source.
+
+## Tests
+
+Backend logic (`backend/`) and QML have a `ctest`-driven test suite under
+`tests/`. Backend code is compiled into a static library (`hamloggercore`,
+also the QML module's backing target) that both `appModernHAMLoggerQt` and
+every test executable link, rather than being compiled straight into the app.
+
+```
+ctest --test-dir build --output-on-failure
+```
+
+- `tests/cpp/` — one `QTEST_GUILESS_MAIN` executable per backend area
+  (`tst_adifio`, `tst_qsologmodel`, `tst_operationlistmodel`,
+  `tst_logbookmanager`), added via the `mhl_add_cpp_test()` helper in
+  `tests/CMakeLists.txt`. These link `hamloggercore` directly and construct
+  backend classes in plain C++ — no `QQmlEngine` involved, so
+  `QML_UNCREATABLE`/`QML_SINGLETON` don't block anything here.
+- `tests/qml/` — a Qt Quick Test harness (`tst_qmlharness`, via
+  `QUICK_TEST_MAIN_WITH_SETUP`) that scans this directory at runtime for
+  `tst_*.qml` files. Currently just a smoke test; add new `tst_*.qml` files
+  here with no CMake changes needed. Runs with `-platform offscreen` so it
+  never pops a window.
+- Any test that touches `LogbookManager` or `StationProfile` **must** call
+  `QStandardPaths::setTestModeEnabled(true)` and
+  `QSettings::setDefaultFormat(QSettings::IniFormat)` before constructing
+  either — both read/write real user data in their constructors (a JSON file
+  under `AppDataLocation`, and `QSettings`, which is the Windows registry by
+  default and is *not* covered by `setTestModeEnabled` alone).
+- `CallsignLookup` owns its own `QNetworkAccessManager` with no injection
+  seam and isn't unit-tested; don't write a test that calls `lookup()`
+  without adding one first.
 
 ## Architecture
 

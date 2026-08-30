@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 project(ModernHAMLoggerQt VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.10 REQUIRED COMPONENTS Quick Network)
+find_package(Qt6 6.10 REQUIRED COMPONENTS Quick Network Test QuickTest)
 
 qt_standard_project_setup(REQUIRES 6.10)
 
@@ -14,9 +14,11 @@ if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/importedcontent/CMakeLists.txt")
     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/importedcontent)
 endif()
 
-qt_add_executable(appModernHAMLoggerQt
-    main.cpp
-)
+# Backend + QML sources live in a static library so both the app and the
+# test binaries can link them without recompiling. STATIC (rather than the
+# SHARED default for this Qt build) keeps the app a single .exe with no
+# extra DLL to deploy.
+qt_add_library(hamloggercore STATIC)
 
 # pragma Singleton QML files must have this source property set before the
 # qt_add_qml_module() call, otherwise the module's qmldir won't mark them
@@ -25,8 +27,9 @@ set_source_files_properties(qml/Theme.qml PROPERTIES
     QT_QML_SINGLETON_TYPE TRUE
 )
 
-qt_add_qml_module(appModernHAMLoggerQt
+qt_add_qml_module(hamloggercore
     URI ModernHAMLoggerQt
+    VERSION 1.0
     QML_FILES
         Main.qml
         qml/Theme.qml
@@ -54,6 +57,19 @@ qt_add_qml_module(appModernHAMLoggerQt
         backend/logbookmanager.cpp
 )
 
+# PUBLIC: backend headers are included flat (e.g. "qso.h") by sibling
+# backend files, and test targets linking hamloggercore need the same path.
+target_include_directories(hamloggercore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/backend)
+
+target_link_libraries(hamloggercore
+    PUBLIC Qt6::Quick
+    PUBLIC Qt6::Network
+)
+
+qt_add_executable(appModernHAMLoggerQt
+    main.cpp
+)
+
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.
@@ -65,13 +81,12 @@ set_target_properties(appModernHAMLoggerQt PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
-target_include_directories(appModernHAMLoggerQt
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/backend
-)
-
+# Linking a STATIC QML module's backing library isn't enough on its own --
+# the module's generated plugin target must be linked explicitly too, and
+# main.cpp imports it statically via Q_IMPORT_QML_PLUGIN.
 target_link_libraries(appModernHAMLoggerQt
-    PRIVATE Qt6::Quick
-    PRIVATE Qt6::Network
+    PRIVATE hamloggercore
+    PRIVATE hamloggercoreplugin
 )
 
 install(TARGETS appModernHAMLoggerQt
@@ -79,3 +94,9 @@ install(TARGETS appModernHAMLoggerQt
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+option(MHL_BUILD_TESTS "Build the test suite" ON)
+if(MHL_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

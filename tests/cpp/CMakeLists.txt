@@ -1,0 +1,4 @@
+mhl_add_cpp_test(tst_adifio tst_adifio.cpp)
+mhl_add_cpp_test(tst_qsologmodel tst_qsologmodel.cpp)
+mhl_add_cpp_test(tst_operationlistmodel tst_operationlistmodel.cpp)
+mhl_add_cpp_test(tst_logbookmanager tst_logbookmanager.cpp)
