@@ -95,6 +95,23 @@ install(TARGETS appModernHAMLoggerQt
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
+# Dev builds (default) install just the exe -- fine when Qt's bin directory
+# is already on PATH, e.g. running from the build tree during development.
+# Production builds additionally bundle every Qt runtime dependency (DLLs,
+# platform plugin, styles, the QML modules the app imports, the MinGW
+# runtime) next to the exe via Qt's own CMake deployment API, producing a
+# self-contained directory that runs on a machine with no Qt installed.
+option(MHL_PRODUCTION_BUILD "Bundle Qt runtime dependencies for a self-contained release" OFF)
+if(MHL_PRODUCTION_BUILD)
+    qt_generate_deploy_qml_app_script(
+        TARGET appModernHAMLoggerQt
+        OUTPUT_SCRIPT deploy_script
+        NO_UNSUPPORTED_PLATFORM_ERROR
+        DEPLOY_USER_QML_MODULES_ON_UNSUPPORTED_PLATFORM
+    )
+    install(SCRIPT ${deploy_script})
+endif()
+
 option(MHL_BUILD_TESTS "Build the test suite" ON)
 if(MHL_BUILD_TESTS)
     enable_testing()

@@ -56,6 +56,23 @@ cmake -S . -B build -DCMAKE_PREFIX_PATH=<path-to-Qt-6.10-kit>
 cmake --build build
 ```
 
+This is a **dev build**: `appModernHAMLoggerQt.exe` alone, which only runs if
+Qt's `bin` directory (DLLs) is already on `PATH`. For a **production build**
+that bundles every Qt runtime dependency next to the exe so it runs
+standalone on a machine with no Qt installed, configure with
+`-DMHL_PRODUCTION_BUILD=ON` and run `cmake --install`:
+
+```
+cmake -S . -B build-release -DCMAKE_PREFIX_PATH=<path-to-Qt-6.10-kit> -DCMAKE_BUILD_TYPE=Release -DMHL_PRODUCTION_BUILD=ON
+cmake --build build-release
+cmake --install build-release --prefix build-release/install
+```
+
+This uses Qt's own CMake deployment API
+(`qt_generate_deploy_qml_app_script()`, the Qt Quick variant — not
+`qt_generate_deploy_app_script()`, which is for Widgets apps), which invokes
+`windeployqt` under the hood.
+
 There is no lint config or CMake presets in this repo — don't assume a
 formatter target exists.
 
