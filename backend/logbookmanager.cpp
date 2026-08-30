@@ -55,6 +55,26 @@ void LogbookManager::selectOperation(int index)
     saveState();
 }
 
+void LogbookManager::deleteOperation(int index)
+{
+    if (index < 0 || index >= m_operations->count())
+        return;
+
+    m_operations->removeAt(index);
+
+    // Keep the selection pointed at the same operation it was on, unless
+    // that's the one just deleted -- then fall back to whatever now
+    // occupies its slot (or the new last item, or none if the list is
+    // empty), mirroring the clamp loadState() does for a stale saved index.
+    if (index < m_currentOperationIndex)
+        --m_currentOperationIndex;
+    else if (index == m_currentOperationIndex)
+        m_currentOperationIndex = std::min(m_currentOperationIndex, m_operations->count() - 1);
+
+    emit currentOperationIndexChanged();
+    saveState();
+}
+
 void LogbookManager::logQso(const QVariantMap &fields)
 {
     Operation *operation = currentOperation();

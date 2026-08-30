@@ -69,6 +69,11 @@ bool QsoLogModel::setCell(int row, int column, const QVariant &value)
     return setData(index(row, column), value, Qt::EditRole);
 }
 
+QString QsoLogModel::cellText(int row, int column) const
+{
+    return data(index(row, column), Qt::DisplayRole).toString();
+}
+
 bool QsoLogModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (!index.isValid() || index.row() < 0 || index.row() >= m_qsos.size())

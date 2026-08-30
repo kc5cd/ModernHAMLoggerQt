@@ -48,6 +48,9 @@ public:
     // Explicit write path for the table's edit delegates. Delegate required
     // properties are one-way, so assigning to them would not reach setData().
     Q_INVOKABLE bool setCell(int row, int column, const QVariant &value);
+    // QAbstractItemModel::data() isn't callable from QML by row/column, so
+    // expose display text directly -- used for column-width measurement.
+    Q_INVOKABLE QString cellText(int row, int column) const;
 
     const QVector<Qso> &qsos() const { return m_qsos; }
     void setQsos(const QVector<Qso> &qsos);
