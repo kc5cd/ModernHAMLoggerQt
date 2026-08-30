@@ -85,6 +85,13 @@ Rectangle {
                 id: callsignField
                 Layout.preferredWidth: fieldMetrics.averageCharacterWidth * 12 + 16
                 maximumLength: 12
+                onTextChanged: {
+                    if (text !== text.toUpperCase()) {
+                        const pos = cursorPosition
+                        text = text.toUpperCase()
+                        cursorPosition = pos
+                    }
+                }
                 onEditingFinished: if (text.trim().length > 0) CallsignLookup.lookup(text.trim())
                 Keys.onReturnPressed: root.logContact()
             }
